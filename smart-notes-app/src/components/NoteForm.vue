@@ -66,14 +66,16 @@ const loading = ref(false);
 const submitNote = async () => {
   loading.value = true;
   try {
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
     // Step 1: Get AI summary dari Google Gemini API
-    const summaryRes = await axios.post("/api/summarize", {
+    const summaryRes = await axios.post(`${API_URL}/api/summarize`, {
       text: content.value,
     });
     const summary = summaryRes.data.summary;
 
     // Step 2: Save catatan lengkap ke database
-    const res = await axios.post("/api/notes", {
+    const res = await axios.post(`${API_URL}/api/notes`, {
       title: title.value,
       content: content.value,
       summary,
