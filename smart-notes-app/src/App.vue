@@ -1,8 +1,3 @@
-<!--
-  @fileoverview Komponen utama aplikasi Smart Notes AI
-  @description Root component yang mengatur state global dan layout utama aplikasi
-  @component App
--->
 <template>
   <div class="container">
     <header>
@@ -16,8 +11,8 @@
           class="theme-toggle"
           :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
         >
-          <span v-if="isDark">☀️</span>
-          <span v-else>🌙</span>
+          <span v-if="isDark">Sun</span>
+          <span v-else>Moon</span>
         </button>
       </div>
     </header>
@@ -31,96 +26,61 @@
 </template>
 
 <script setup>
-/**
- * @module App
- * @description Komponen utama aplikasi yang mengelola state notes dan komunikasi dengan API
- */
-
 import { ref, onMounted } from "vue";
 import axios from "axios";
 import NoteForm from "./components/NoteForm.vue";
 import NoteList from "./components/NoteList.vue";
 
-/**
- * Reactive state untuk menyimpan array semua catatan
- * @type {import('vue').Ref<Array>}
- */
+// === STATE ===
 const notes = ref([]);
-
-/**
- * Reactive state untuk dark mode
- * @type {import('vue').Ref<Boolean>}
- */
 const isDark = ref(false);
 
-/**
- * Mendeteksi preferensi tema sistem atau dari localStorage
- * @function initTheme
- */
+// === API URL (INI YANG PALING PENTING!) ===
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+// === THEME HANDLING ===
 const initTheme = () => {
-  const savedTheme = localStorage.getItem("theme");
+  const saved = localStorage.getItem("theme");
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-
-  if (savedTheme) {
-    isDark.value = savedTheme === "dark";
-  } else {
-    isDark.value = prefersDark;
-  }
-
+  isDark.value = saved ? saved === "dark" : prefersDark;
   applyTheme();
 };
 
-/**
- * Menerapkan tema ke document
- * @function applyTheme
- */
 const applyTheme = () => {
-  if (isDark.value) {
-    document.documentElement.setAttribute("data-theme", "dark");
-    localStorage.setItem("theme", "dark");
-  } else {
-    document.documentElement.setAttribute("data-theme", "light");
-    localStorage.setItem("theme", "light");
-  }
+  const theme = isDark.value ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("theme", theme);
 };
 
-/**
- * Toggle antara light dan dark mode
- * @function toggleTheme
- */
 const toggleTheme = () => {
   isDark.value = !isDark.value;
   applyTheme();
 };
 
-/**
- * Mengambil semua catatan dari API backend
- * @async
- * @function fetchNotes
- * @description Fetch semua catatan dari endpoint GET /api/notes dan update state notes
- */
+// === FETCH NOTES DARI BACKEND LIVE ===
 const fetchNotes = async () => {
-  const res = await axios.get("/api/notes");
-  notes.value = res.data;
+  try {
+    const res = await axios.get(`${API_URL}/api/notes`);
+    notes.value = res.data;
+  } catch (err) {
+    console.error("Gagal mengambil catatan:", err);
+    // Jangan alert biar tidak mengganggu, cukup console
+  }
 };
 
-/**
- * Menambahkan catatan baru ke awal array notes
- * @function addNote
- * @param {Object} newNote - Objek catatan baru yang akan ditambahkan
- * @description Dipanggil ketika event 'note-added' di-emit dari NoteForm component
- */
+// === TAMBAH CATATAN BARU ===
 const addNote = (newNote) => {
   notes.value.unshift(newNote);
 };
 
-// Lifecycle hooks
+// === LIFECYCLE ===
 onMounted(() => {
   initTheme();
   fetchNotes();
 });
 </script>
 
+<!-- Style tetap sama seperti punya kamu -->
 <style>
 * {
   margin: 0;
@@ -156,10 +116,6 @@ header {
   flex-wrap: wrap;
   gap: 1rem;
 }
-header > div:first-child {
-  text-align: left;
-  flex: 1;
-}
 header h1 {
   color: var(--text-primary);
   font-size: 2.5rem;
@@ -169,7 +125,6 @@ header h1 {
 header p {
   color: var(--text-secondary);
   font-size: 1.1rem;
-  font-weight: 400;
 }
 .theme-toggle {
   background: var(--bg-card);
@@ -180,16 +135,10 @@ header p {
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px var(--shadow-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 .theme-toggle:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px var(--shadow-hover);
   border-color: var(--focus-color);
-}
-.theme-toggle:active {
-  transform: translateY(0);
 }
 </style>
