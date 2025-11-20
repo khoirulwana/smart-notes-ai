@@ -31,9 +31,9 @@ const connectDatabase = async () => {
 connectDatabase();
 
 const CATEGORY_KEYWORDS = [
-    { label: "belajar", keywords: ["belajar", "kursus", "tutorial"] },
-    { label: "kerja", keywords: ["kerja", "meeting", "tugas"] },
-  ];
+  { label: "belajar", keywords: ["belajar", "kursus", "tutorial"] },
+  { label: "kerja", keywords: ["kerja", "meeting", "tugas"] },
+];
 
 const categorize = (text = "") => {
   const lower = text.toLowerCase();
@@ -61,7 +61,8 @@ app.post("/api/summarize", async (req, res) => {
         ],
       }
     );
-    const summary = response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const summary =
+      response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     if (!summary) {
       throw new Error("Tidak ada ringkasan dari AI");
     }
@@ -102,6 +103,25 @@ app.post("/api/notes", async (req, res) => {
   } catch (error) {
     console.error("Failed to save note:", error.message);
     res.status(500).json({ error: "Failed to save note" });
+  }
+});
+
+app.delete("/api/notes/:id", async (req, res) => {
+  const { id } = req.params;
+
+  if (!Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ error: "Invalid note id" });
+  }
+
+  try {
+    const deleted = await Note.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ error: "Note not found" });
+    }
+    res.status(204).end();
+  } catch (error) {
+    console.error("Failed to delete note:", error.message);
+    res.status(500).json({ error: "Failed to delete note" });
   }
 });
 

@@ -18,7 +18,7 @@
     </header>
 
     <NoteForm @note-added="addNote" />
-    <NoteList :notes="notes" />
+    <NoteList :notes="notes" @delete-note="deleteNote" />
   </div>
 </template>
 
@@ -63,6 +63,25 @@ const fetchNotes = async () => {
 
 const addNote = (newNote) => {
   notes.value.unshift(newNote);
+};
+
+const deletingId = ref(null);
+
+const deleteNote = async (id) => {
+  if (!id || deletingId.value) return;
+  const confirmed = confirm("Hapus catatan ini?");
+  if (!confirmed) return;
+
+  deletingId.value = id;
+  try {
+    await axios.delete(`${API_BASE_URL}/api/notes/${id}`);
+    notes.value = notes.value.filter((note) => note._id !== id);
+  } catch (err) {
+    console.error("Gagal menghapus catatan:", err);
+    alert("Gagal menghapus catatan, coba lagi.");
+  } finally {
+    deletingId.value = null;
+  }
 };
 
 onMounted(() => {

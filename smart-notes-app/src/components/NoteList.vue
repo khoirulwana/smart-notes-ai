@@ -12,13 +12,31 @@
           {{ note.category }}
         </span>
         <small>{{ formatDate(note.createdAt) }}</small>
+        <button
+          class="delete"
+          :disabled="props.deletingId === note._id"
+          @click="emit('delete-note', note._id)"
+        >
+          {{ props.deletingId === note._id ? "Menghapus..." : "Hapus" }}
+        </button>
       </div>
     </article>
   </div>
 </template>
 
 <script setup>
-defineProps(["notes"]);
+const props = defineProps({
+  notes: {
+    type: Array,
+    default: () => [],
+  },
+  deletingId: {
+    type: String,
+    default: null,
+  },
+});
+
+const emit = defineEmits(["delete-note"]);
 
 const formatDate = (date) => {
   const parsed = new Date(date);
@@ -96,6 +114,18 @@ const formatDate = (date) => {
   font-weight: 500;
   line-height: 1.6;
 }
+
+.delete {
+  border: none;
+  background: transparent;
+  color: #e53e3e;
+  font-weight: 600;
+  cursor: pointer;
+}
+.delete:hover {
+  text-decoration: underline;
+}
+
 .meta {
   display: flex;
   justify-content: space-between;
