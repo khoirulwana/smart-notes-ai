@@ -1,9 +1,3 @@
-<!--
-  @fileoverview Komponen untuk menampilkan daftar catatan
-  @description Menampilkan grid dari semua catatan dengan informasi lengkap (title, summary, content, category, date)
-  @component NoteList
-  @props {Array} notes - Array of note objects untuk ditampilkan
--->
 <template>
   <div class="notes-grid">
     <article v-for="note in notes" :key="note._id" class="note-card">
@@ -24,36 +18,15 @@
 </template>
 
 <script setup>
-/**
- * @module NoteList
- * @description Komponen untuk menampilkan daftar semua catatan dalam format card grid
- */
-
-/**
- * Props yang diterima dari parent component
- * @typedef {Object} Note
- * @property {String} _id - ID unik catatan dari MongoDB
- * @property {String} title - Judul catatan
- * @property {String} content - Isi/konten catatan
- * @property {String} summary - Ringkasan AI
- * @property {String} category - Kategori: "belajar", "kerja", atau "pribadi"
- * @property {Date} createdAt - Tanggal dan waktu catatan dibuat
- */
-
-/**
- * @prop {Array<Note>} notes - Array berisi semua catatan yang akan ditampilkan
- */
 defineProps(["notes"]);
 
-/**
- * Memformat tanggal ke format Indonesia yang mudah dibaca
- * @function formatDate
- * @param {Date|String} date - Tanggal yang akan diformat
- * @returns {String} Tanggal dalam format "Bulan DD, HH:MM" (contoh: "Jan 15, 14:30")
- * @description Mengkonversi date ke format lokal Indonesia dengan format: bulan singkat, hari, jam, menit
- */
 const formatDate = (date) => {
-  return new Date(date).toLocaleDateString("id-ID", {
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) {
+    return "-";
+  }
+
+  return parsed.toLocaleDateString("id-ID", {
     month: "short",
     day: "numeric",
     hour: "2-digit",

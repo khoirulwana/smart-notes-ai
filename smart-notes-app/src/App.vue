@@ -17,10 +17,7 @@
       </div>
     </header>
 
-    <!-- Form untuk menambah catatan baru -->
     <NoteForm @note-added="addNote" />
-
-    <!-- Daftar semua catatan -->
     <NoteList :notes="notes" />
   </div>
 </template>
@@ -30,57 +27,50 @@ import { ref, onMounted } from "vue";
 import axios from "axios";
 import NoteForm from "./components/NoteForm.vue";
 import NoteList from "./components/NoteList.vue";
+import { API_BASE_URL } from "./config";
 
-// === STATE ===
 const notes = ref([]);
 const isDark = ref(false);
 
-// === API URL (INI YANG PALING PENTING!) ===
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-// === THEME HANDLING ===
 const initTheme = () => {
   const saved = localStorage.getItem("theme");
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  isDark.value = saved ? saved === "dark" : prefersDark;
-  applyTheme();
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+  isDark.value = saved ? saved === "dark" : prefersDark === "dark";
+  applyTheme(isDark.value);
 };
 
-const applyTheme = () => {
-  const theme = isDark.value ? "dark" : "light";
-  document.documentElement.setAttribute("data-theme", theme);
+const applyTheme = (darkMode) => {
+  const theme = darkMode ? "dark" : "light";
+  document.documentElement.dataset.theme = theme;
   localStorage.setItem("theme", theme);
 };
 
 const toggleTheme = () => {
   isDark.value = !isDark.value;
-  applyTheme();
+  applyTheme(isDark.value);
 };
 
-// === FETCH NOTES DARI BACKEND LIVE ===
 const fetchNotes = async () => {
   try {
-    const res = await axios.get(`${API_URL}/api/notes`);
-    notes.value = res.data;
+    const { data } = await axios.get(`${API_BASE_URL}/api/notes`);
+    notes.value = data;
   } catch (err) {
     console.error("Gagal mengambil catatan:", err);
-    // Jangan alert biar tidak mengganggu, cukup console
   }
 };
 
-// === TAMBAH CATATAN BARU ===
 const addNote = (newNote) => {
   notes.value.unshift(newNote);
 };
 
-// === LIFECYCLE ===
 onMounted(() => {
   initTheme();
   fetchNotes();
 });
 </script>
 
-<!-- Style tetap sama seperti punya kamu -->
 <style>
 * {
   margin: 0;

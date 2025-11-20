@@ -1,9 +1,3 @@
-<!--
-  @fileoverview Komponen form untuk membuat catatan baru
-  @description Form input untuk judul dan konten, dengan integrasi AI untuk generate summary
-  @component NoteForm
-  @emits note-added - Event yang di-emit ketika catatan berhasil dibuat
--->
 <template>
   <form @submit.prevent="submitNote" class="note-form">
     <input v-model="title" placeholder="Judul catatan..." required />
@@ -20,75 +14,42 @@
 </template>
 
 <script setup>
-/**
- * @module NoteForm
- * @description Komponen form untuk membuat catatan baru dengan AI-powered summary
- */
-
 import { ref } from "vue";
 import axios from "axios";
+import { API_BASE_URL } from "../config";
 
-/**
- * Define emits untuk komunikasi dengan parent component
- * @emits {Object} note-added - Emit ketika catatan baru berhasil dibuat
- */
 const emit = defineEmits(["note-added"]);
-
-/**
- * Reactive state untuk judul catatan
- * @type {import('vue').Ref<String>}
- */
 const title = ref("");
-
-/**
- * Reactive state untuk konten catatan
- * @type {import('vue').Ref<String>}
- */
 const content = ref("");
-
-/**
- * Reactive state untuk loading status saat proses AI dan save
- * @type {import('vue').Ref<Boolean>}
- */
 const loading = ref(false);
 
-/**
- * Handler untuk submit form
- * @async
- * @function submitNote
- * @description
- * 1. Mengirim konten ke API untuk generate summary menggunakan AI
- * 2. Menyimpan catatan lengkap (title, content, summary) ke database
- * 3. Emit event 'note-added' dengan data catatan baru
- * 4. Reset form setelah berhasil
- * @throws {Error} Menampilkan alert jika terjadi error
- */
 const submitNote = async () => {
+  if (!title.value.trim() || !content.value.trim()) {
+    return;
+  }
+
   loading.value = true;
   try {
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const { data: summaryRes } = await axios.post(
+      `${API_BASE_URL}/api/summarize`,
+      {
+        text: content.value,
+      }
+    );
+    const summary = summaryRes.summary;
 
-    // Step 1: Get AI summary dari Google Gemini API
-    const summaryRes = await axios.post(`${API_URL}/api/summarize`, {
-      text: content.value,
-    });
-    const summary = summaryRes.data.summary;
-
-    // Step 2: Save catatan lengkap ke database
-    const res = await axios.post(`${API_URL}/api/notes`, {
+    const { data: savedNote } = await axios.post(`${API_BASE_URL}/api/notes`, {
       title: title.value,
       content: content.value,
       summary,
     });
 
-    // Step 3: Emit event ke parent component
-    emit("note-added", res.data);
-
-    // Step 4: Reset form
+    emit("note-added", savedNote);
     title.value = "";
     content.value = "";
   } catch (err) {
-    alert("Error: " + (err.response?.data?.error || err.message));
+    console.error("Gagal menyimpan catatan:", err);
+    alert("Gagal menyimpan catatan. Silakan coba lagi.");
   } finally {
     loading.value = false;
   }
