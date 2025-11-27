@@ -8,17 +8,31 @@
       required
     ></textarea>
     <button type="submit" :disabled="loading">
-      {{ loading ? "Mengolah AI..." : "Simpan" }}
+      {{
+        loading ? "Mengolah AI..." : isEditing ? "Simpan perubahan" : "Simpan"
+      }}
+    </button>
+    <button
+      v-if="isEditing"
+      type="button"
+      class="cancel"
+      @click="cancelEdit"
+      :disabled="loading"
+    >
+      Batal
     </button>
   </form>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, watch, computed } from "vue";
 import axios from "axios";
 import { API_BASE_URL } from "../config";
 
-const emit = defineEmits(["note-added"]);
+const emit = defineEmits(["note-added", "note-updated", "cancel-edit"]);
+const props = defineProps({
+  editingNote: { type: Object, default: null },
+});
 const title = ref("");
 const content = ref("");
 const loading = ref(false);
@@ -38,13 +52,32 @@ const submitNote = async () => {
     );
     const summary = summaryRes.summary;
 
-    const { data: savedNote } = await axios.post(`${API_BASE_URL}/api/notes`, {
-      title: title.value,
-      content: content.value,
-      summary,
-    });
+    if (props.editingNote && props.editingNote._id) {
+      // Update existing note
+      const { data: updatedNote } = await axios.put(
+        `${API_BASE_URL}/api/notes/${props.editingNote._id}`,
+        {
+          title: title.value,
+          content: content.value,
+          summary,
+        }
+      );
+      emit("note-updated", updatedNote);
+    } else {
+      // Create new note
+      const { data: savedNote } = await axios.post(
+        `${API_BASE_URL}/api/notes`,
+        {
+          title: title.value,
+          content: content.value,
+          summary,
+        }
+      );
 
-    emit("note-added", savedNote);
+      emit("note-added", savedNote);
+    }
+
+    // reset form
     title.value = "";
     content.value = "";
   } catch (err) {
@@ -53,6 +86,28 @@ const submitNote = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+const isEditing = computed(
+  () => !!props.editingNote && !!props.editingNote._id
+);
+
+// When parent sets editingNote, populate form
+watch(
+  () => props.editingNote,
+  (v) => {
+    if (v) {
+      title.value = v.title || "";
+      content.value = v.content || "";
+    }
+  },
+  { immediate: true }
+);
+
+const cancelEdit = () => {
+  emit("cancel-edit");
+  title.value = "";
+  content.value = "";
 };
 </script>
 
@@ -126,5 +181,16 @@ button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+}
+
+.cancel {
+  margin-top: 0.75rem;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  padding: 0.75rem 1rem;
+}
+.cancel:hover:not(:disabled) {
+  background: var(--bg-input);
 }
 </style>

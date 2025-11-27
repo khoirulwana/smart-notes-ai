@@ -17,8 +17,18 @@
       </div>
     </header>
 
-    <NoteForm @note-added="addNote" />
-    <NoteList :notes="notes" @delete-note="deleteNote" />
+    <NoteForm
+      :editingNote="editingNote"
+      @note-added="addNote"
+      @note-updated="updateNote"
+      @cancel-edit="cancelEdit"
+    />
+    <NoteList
+      :notes="notes"
+      :deletingId="deletingId"
+      @delete-note="deleteNote"
+      @edit-note="startEdit"
+    />
   </div>
 </template>
 
@@ -61,6 +71,8 @@ const fetchNotes = async () => {
   }
 };
 
+const editingNote = ref(null);
+
 const addNote = (newNote) => {
   notes.value.unshift(newNote);
 };
@@ -82,6 +94,20 @@ const deleteNote = async (id) => {
   } finally {
     deletingId.value = null;
   }
+};
+
+const startEdit = (note) => {
+  editingNote.value = note || null;
+};
+
+const cancelEdit = () => {
+  editingNote.value = null;
+};
+
+const updateNote = (updated) => {
+  // replace updated note in the list
+  notes.value = notes.value.map((n) => (n._id === updated._id ? updated : n));
+  editingNote.value = null;
 };
 
 onMounted(() => {

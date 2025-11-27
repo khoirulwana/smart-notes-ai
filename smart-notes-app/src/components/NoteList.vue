@@ -8,17 +8,22 @@
         <p class="summary-text">{{ note.summary }}</p>
       </div>
       <div class="meta">
-        <span class="tag" :class="note.category">
-          {{ note.category }}
-        </span>
-        <small>{{ formatDate(note.createdAt) }}</small>
-        <button
-          class="delete"
-          :disabled="props.deletingId === note._id"
-          @click="emit('delete-note', note._id)"
-        >
-          {{ props.deletingId === note._id ? "Menghapus..." : "Hapus" }}
-        </button>
+        <div class="meta-left">
+          <span class="tag" :class="note.category">
+            {{ note.category }}
+          </span>
+          <small>{{ formatDate(note.createdAt) }}</small>
+        </div>
+        <div class="meta-actions">
+          <button class="edit" @click="emit('edit-note', note)">Edit</button>
+          <button
+            class="delete"
+            :disabled="props.deletingId === note._id"
+            @click="emit('delete-note', note._id)"
+          >
+            {{ props.deletingId === note._id ? "Menghapus..." : "Hapus" }}
+          </button>
+        </div>
       </div>
     </article>
   </div>
@@ -36,7 +41,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["delete-note"]);
+const emit = defineEmits(["delete-note", "edit-note"]);
 
 const formatDate = (date) => {
   const parsed = new Date(date);
@@ -135,6 +140,29 @@ const formatDate = (date) => {
   margin-top: 1.5rem;
   padding-top: 1rem;
   border-top: 1px solid var(--border-input);
+}
+
+.meta-left {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.meta-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.edit {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+}
+.edit:hover {
+  text-decoration: underline;
 }
 .tag {
   padding: 0.5rem 1rem;
