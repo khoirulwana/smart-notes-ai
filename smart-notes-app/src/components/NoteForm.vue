@@ -1,5 +1,8 @@
 <template>
   <form @submit.prevent="submitNote" class="note-form">
+    <div v-if="isEditing" class="editing-indicator">
+      Sedang mengedit: <strong>{{ props.editingNote.title }}</strong>
+    </div>
     <input v-model="title" placeholder="Judul catatan..." required />
     <textarea
       v-model="content"
@@ -35,6 +38,8 @@ const props = defineProps({
 });
 const title = ref("");
 const content = ref("");
+const initialTitle = ref("");
+const initialContent = ref("");
 const loading = ref(false);
 
 const submitNote = async () => {
@@ -44,13 +49,22 @@ const submitNote = async () => {
 
   loading.value = true;
   try {
-    const { data: summaryRes } = await axios.post(
-      `${API_BASE_URL}/api/summarize`,
-      {
-        text: content.value,
-      }
-    );
-    const summary = summaryRes.summary;
+    let summary = props.editingNote?.summary || "";
+
+    const contentChanged =
+      !props.editingNote ||
+      (initialContent.value?.trim() || "") !== content.value.trim();
+
+    // Only call the summarizer when creating new or when content actually changed
+    if (!props.editingNote || contentChanged) {
+      const { data: summaryRes } = await axios.post(
+        `${API_BASE_URL}/api/summarize`,
+        {
+          text: content.value,
+        }
+      );
+      summary = summaryRes.summary;
+    }
 
     if (props.editingNote && props.editingNote._id) {
       // Update existing note
@@ -80,6 +94,8 @@ const submitNote = async () => {
     // reset form
     title.value = "";
     content.value = "";
+    initialTitle.value = "";
+    initialContent.value = "";
   } catch (err) {
     console.error("Gagal menyimpan catatan:", err);
     alert("Gagal menyimpan catatan. Silakan coba lagi.");
@@ -99,6 +115,8 @@ watch(
     if (v) {
       title.value = v.title || "";
       content.value = v.content || "";
+      initialTitle.value = v.title || "";
+      initialContent.value = v.content || "";
     }
   },
   { immediate: true }
@@ -108,6 +126,8 @@ const cancelEdit = () => {
   emit("cancel-edit");
   title.value = "";
   content.value = "";
+  initialTitle.value = "";
+  initialContent.value = "";
 };
 </script>
 
@@ -119,6 +139,23 @@ const cancelEdit = () => {
   box-shadow: 0 4px 20px var(--shadow-color);
   margin-bottom: 2rem;
   border: 1px solid var(--border-color);
+}
+
+.editing-indicator {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.02)
+  );
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+.editing-indicator strong {
+  color: var(--text-primary);
+  margin-left: 0.25rem;
 }
 input,
 textarea {
