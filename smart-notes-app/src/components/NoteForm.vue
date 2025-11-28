@@ -40,6 +40,7 @@ const title = ref("");
 const content = ref("");
 const initialTitle = ref("");
 const initialContent = ref("");
+const initialSummary = ref("");
 const loading = ref(false);
 
 const submitNote = async () => {
@@ -57,13 +58,28 @@ const submitNote = async () => {
 
     // Only call the summarizer when creating new or when content actually changed
     if (!props.editingNote || contentChanged) {
-      const { data: summaryRes } = await axios.post(
-        `${API_BASE_URL}/api/summarize`,
-        {
-          text: content.value,
+      try {
+        const { data: summaryRes } = await axios.post(
+          `${API_BASE_URL}/api/summarize`,
+          {
+            text: content.value,
+          }
+        );
+        summary = summaryRes.summary;
+      } catch (summaryErr) {
+        // If summarizer fails, warn and continue using existing summary (if editing)
+        console.warn(
+          "Summarizer error, continuing without new summary:",
+          summaryErr
+        );
+        if (!props.editingNote) {
+          // For new notes, fallback to a placeholder so creation still works
+          summary = "Menunggu AI...";
+        } else {
+          // For edits, keep the original/initial summary
+          summary = initialSummary.value || summary;
         }
-      );
-      summary = summaryRes.summary;
+      }
     }
 
     if (props.editingNote && props.editingNote._id) {
@@ -117,6 +133,7 @@ watch(
       content.value = v.content || "";
       initialTitle.value = v.title || "";
       initialContent.value = v.content || "";
+      initialSummary.value = v.summary || "";
     }
   },
   { immediate: true }
@@ -128,6 +145,7 @@ const cancelEdit = () => {
   content.value = "";
   initialTitle.value = "";
   initialContent.value = "";
+  initialSummary.value = "";
 };
 </script>
 

@@ -134,22 +134,37 @@ app.put("/api/notes/:id", async (req, res) => {
   }
 
   try {
-    // If summary is not passed, try to generate with AI, otherwise use provided
-    let summary = req.body?.summary?.trim();
-    if (!summary) {
-      const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_KEY}`,
-        {
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: `Ringkas dalam 1 kalimat: ${content}` }],
-            },
-          ],
-        }
-      );
-      summary =
-        response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    // Load existing note to preserve/fallback summary if AI fails
+    const existing = await Note.findById(id);
+    if (!existing) return res.status(404).json({ error: "Note not found" });
+
+    // Start with either provided summary or the existing one
+    let summary = req.body?.summary?.trim() || existing.summary || "";
+
+    // Only attempt to re-summarize when the content actually changed
+    if (content && content !== existing.content) {
+      try {
+        const response = await axios.post(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_KEY}`,
+          {
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: `Ringkas dalam 1 kalimat: ${content}` }],
+              },
+            ],
+          }
+        );
+        const generated =
+          response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (generated) summary = generated;
+      } catch (aiErr) {
+        // AI failed — log and continue using existing summary
+        console.warn(
+          "AI summarizer failed during update. Using previous summary.",
+          aiErr?.message || aiErr
+        );
+      }
     }
 
     const updated = await Note.findByIdAndUpdate(
@@ -163,7 +178,6 @@ app.put("/api/notes/:id", async (req, res) => {
       { new: true }
     );
 
-    if (!updated) return res.status(404).json({ error: "Note not found" });
     res.json(updated);
   } catch (error) {
     console.error("Failed to update note:", error.message);
@@ -189,6 +203,5 @@ app.delete("/api/notes/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to delete note" });
   }
 });
-
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`API running on port ${PORT}`));
